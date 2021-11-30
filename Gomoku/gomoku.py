@@ -10,8 +10,8 @@ class ChessBoard:
     def __init__(self, size):
         self.size = size
         # 1 for player 1 and 2 for player 2
-        self.pieces = [1, 2]
-        self.chess_board = [[0 for _ in range(size)] for _ in range(size)]
+        self.pieces = ['x', 'o']
+        self.chess_board = [['.' for _ in range(size)] for _ in range(size)]
         self.vacants = [i for i in range(size**2)]
 
         self.player = -1
