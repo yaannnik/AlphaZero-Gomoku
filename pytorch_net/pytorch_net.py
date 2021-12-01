@@ -27,13 +27,12 @@ class PlainNet(nn.Module):
 
         # action policy layers
         self.conv_act = nn.Conv2d(128, 4, kernel_size=1)
-        self.fc_act = nn.Linear((self.size**2)*4, self.size**2)
+        self.fc_act = nn.Linear((self.size ** 2) * 4, self.size ** 2)
 
         # state value layers
         self.conv_val = nn.Conv2d(128, 2, kernel_size=1)
-        self.fc_val1 = nn.Linear((self.size**2)*2, 64)
+        self.fc_val1 = nn.Linear((self.size ** 2) * 2, 64)
         self.fc_val2 = nn.Linear(64, 1)
-
 
     def forward(self, input):
         """
@@ -52,12 +51,12 @@ class PlainNet(nn.Module):
 
         # action policy layers
         x_act = F.relu(self.conv_act(x))
-        x_act = x_act.view(-1, (self.size**2)*4)
+        x_act = x_act.view(-1, (self.size ** 2) * 4)
         act_prob = F.log_softmax(self.fc_act(x_act), dim=1)
 
         # state value layers
         x_val = F.relu(self.conv_val(x))
-        x_val = x_val.view(-1, (self.size**2)*2)
+        x_val = x_val.view(-1, (self.size ** 2) * 2)
         x_val = F.relu(self.fc_val1(x_val))
         state_val = torch.tanh(self.fc_val2(x_val))
 
@@ -81,9 +80,8 @@ class GomokuNet:
         if weights is not None:
             self.net.load_state_dict(torch.load(weights))
 
-        self.optimizer = self.optimizer = optim.Adam(self.net.parameters(),
-                                                     weight_decay=self.weight_decay)
-
+        self.optimizer = optim.Adam(self.net.parameters(),
+                                    weight_decay=self.weight_decay)
 
     def get_acts_and_val(self, states):
         """
@@ -93,7 +91,7 @@ class GomokuNet:
             actor_probs - possibility map of moves(np.array)
             state_val - value map of states(np.array)
         """
-        states = Variable(torch.from_numpy(states).to(self.device).float())
+        states = Variable(torch.FloatTensor(states).to(self.device))
 
         act_tensor, state_tensor = self.net(states)
 
@@ -102,7 +100,6 @@ class GomokuNet:
 
         return act_probs.flatten(), state_val.flatten()
 
-    
     def get_from_board(self, cb):
         """
         parameters:
@@ -112,35 +109,50 @@ class GomokuNet:
             state_val - value map of states(float)
         """
         states = cb.getState().reshape(-1, 4, self.size, self.size)
-        
+
         act_probs, state_vals = self.get_acts_and_val(states)
 
         act_probs = zip(cb.vacants, act_probs[cb.vacants])
         state_vals = state_vals[0]
 
+        return act_probs, state_vals
 
-    def train_step(self, states, mc_probs, winners, lr):
-        states   = Variable(torch.FloatTensor(states).to(self.device))
-        mc_probs = Variable(torch.FloatTensor(mc_probs).to(self.device))
-        winners  = Variable(torch.FloatTensor(winners).to(self.device))
-
-        self.optimizer.zero_grad()
+    def set_learning_rate(self, lr):
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
-        # forward
-        act_scores, value = self.policy_value_net(states)
+    def train_step(self, states, mc_probs, winners, lr):
+        states = Variable(torch.FloatTensor(states).to(self.device))
+        mc_probs = Variable(torch.FloatTensor(mc_probs).to(self.device))
+        winners = Variable(torch.FloatTensor(winners).to(self.device))
+
+        self.optimizer.zero_grad()
+        self.set_learning_rate(lr)
+
+        # forward propagation
+        act_scores, value = self.net(states)
         # define the loss = (z - v)^2 - pi^T * log(p) + c||theta||^2
         # Note: the L2 penalty is incorporated in optimizer
         value_loss = F.mse_loss(value.view(-1), winners)
-        policy_loss = -torch.mean(torch.sum(mc_probs*act_scores, 1))
+        policy_loss = -torch.mean(torch.sum(mc_probs * act_scores, 1))
         loss = value_loss + policy_loss
-        # backward and optimize
+
+        # backward propagation and optimize
         loss.backward()
         self.optimizer.step()
+
         # calc policy entropy, for monitoring only
-        entropy = -torch.mean(
-                torch.sum(torch.exp(act_scores) * act_scores, 1)
-                )
+        entropy = -torch.mean(torch.sum(torch.exp(act_scores) * act_scores, 1))
 
         return loss.item(), entropy.item()
+
+    def get_param(self):
+        params = self.net.state_dict()
+        return params
+
+    def save_model(self, model_path):
+        """
+        save model params to file 
+        """
+        params = self.get_param()  # get model params
+        torch.save(params, model_path)
