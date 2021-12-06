@@ -30,22 +30,22 @@ class MCTSNode:
     def expansion(self, nextaction):
         self.children[nextaction] = MCTSNode(self, self.total_n)
     
-    def get_UCBvalue(self):
+    def get_UCBvalue(self, C):
         if self.node_n == 0:
             return inf
         else:
-            return self.reward + np.sqrt(np.log(self.total_n)/self.node_n)
+            return self.reward + C * np.sqrt(np.log(self.total_n)/self.node_n)
     
-    def children_selection(self):
+    def children_selection(self, C):
         max_set = []
         max_value = 0
         for action in self.children:
             self.children[action].total_n = self.total_n
-            if (self.children[action].get_UCBvalue() > max_value):
+            if (self.children[action].get_UCBvalue(C) > max_value):
                 max_set.clear()
                 max_set.append(action)
-                max_value = self.children[action].get_UCBvalue()
-            elif (self.children[action].get_UCBvalue() == max_value):
+                max_value = self.children[action].get_UCBvalue(C)
+            elif (self.children[action].get_UCBvalue(C) == max_value):
                 max_set.append(action)
         next_action = np.random.choice(len(max_set))
         return max_set[next_action], self.children[max_set[next_action]]
@@ -62,15 +62,16 @@ class MCTSNode:
         self.back_update(reward)
 
 class MCTS:
-    def __init__(self, state, numplay):
+    def __init__(self, state, numplay, C = 1):
         self.root = MCTSNode(None, 0)
         self.state = state
         self.numplay = numplay
+        self.C = C
     
     def one_play(self, state_sim):
         current_node = self.root
         while not current_node.is_leaf():
-            next_action, current_node = current_node.children_selection()
+            next_action, current_node = current_node.children_selection(self.C)
             state_sim.move(next_action // state_sim.size, next_action % state_sim.size)
         End, _ = state_sim.endGame()
         if not End:
@@ -117,10 +118,10 @@ class MCTS:
 
 
 class MCTSPlayer:
-    def __init__(self, state, numplay = 1000):
+    def __init__(self, state, numplay = 1000, C = 1):
         self.state = state
         self.numplay = numplay
-        self.mcts = MCTS(state, numplay)
+        self.mcts = MCTS(state, numplay, C)
     
     def reset(self):
         self.mcts.root = MCTSNode(None, 0)
