@@ -1,68 +1,67 @@
-'''
+"""
 @author: yangyi
-'''
+"""
 
 import sys
 import os
 import numpy as np
 
-class ChessBoard:
-    def __init__(self, size):
-        self.size = size
-        # 1 for player 1 and 2 for player 2
-        self.pieces = ['x', 'o']
-        self.chess_board = [['.' for _ in range(size)] for _ in range(size)]
-        self.vacants = [i for i in range(size**2)]
 
-        self.player = -1
+class ChessBoard:
+    def __init__(self, size, n):
+        self.size = size
+        self.N = n
+        # 1 for player 0 and 2 for player 1
+        self.vacants = [i for i in range(size ** 2)]
+
+        self.players = [1, 2]
+        self.playing = self.players[0]  # 1 or 2
+
         self.pre_move = -1
         self.history = {}
 
+    def set_player(self, player):
+        self.playing = self.players[player]
 
-    def getState(self):
+    def get_state(self):
         state = np.zeros((4, self.size, self.size))
 
         if self.history:
             moves, players = np.array(list(zip(*self.history.items())))
 
-            move_self = moves[players == self.player]
-            move_oppo = moves[players != self.player]
+            move_self = moves[players == self.playing]
+            move_oppo = moves[players != self.playing]
 
             state[0][move_self // self.size,
-                            move_self % self.size] = 1.0
+                     move_self % self.size] = 1.0
             state[1][move_oppo // self.size,
-                            move_oppo % self.size] = 1.0
+                     move_oppo % self.size] = 1.0
             # indicate the last move location
             state[2][self.pre_move // self.size,
-                            self.pre_move % self.size] = 1.0
+                     self.pre_move % self.size] = 1.0
 
         if len(self.history) % 2 == 0:
             state[3][:, :] = 1.0  # indicate the player to play
 
         return state[:, ::-1, :]
 
+    def move(self, idx):
+        if idx not in self.vacants:
+            raise BaseException('Invalid move')
 
-    def move(self, row, col):
-        self.player = (self.player + 1) % 2
-        piece = self.pieces[self.player]
-
-        idx = row * self.size + col
-
-        if self.chess_board[row % self.size][col % self.size] != '#':
-            raise BaseException('Occupied move')
-
-        self.chess_board[row % self.size][col % self.size] = piece
-        self.history[idx] = self.player
+        self.history[idx] = self.playing
         self.pre_move = idx
         self.vacants.remove(idx)
 
+        self.playing = self.playing % 2 + 1  # change player
 
-    def playerWin(self):
+    def player_win(self):
         history = self.history
-        n = 5
+        n = self.N
 
         moves = list(set(history.keys()))
         print(moves)
+
         if len(moves) < n * 2 - 1:
             return -1
 
@@ -74,32 +73,124 @@ class ChessBoard:
 
             if (col in range(self.size - n + 1) and
                     len(set(history.get(i, -1) for i in range(m, m + n))) == 1):
-                return player
+                return True, player
 
             if (row in range(self.size - n + 1) and
                     len(set(history.get(i, -1) for i in range(m, m + n * self.size, self.size))) == 1):
-                return player
+                return True, player
 
             if (col in range(self.size - n + 1) and row in range(self.size - n + 1) and
                     len(set(history.get(i, -1) for i in range(m, m + n * (self.size + 1), self.size + 1))) == 1):
-                return player
+                return True, player
 
             if (col in range(n - 1, self.size) and row in range(self.size - n + 1) and
                     len(set(history.get(i, -1) for i in range(m, m + n * (self.size - 1), self.size - 1))) == 1):
-                return player
+                return True, player
 
-        return -1
+        return False, -1
 
+    def end_game(self):
+        win, winner = self.player_win()
 
-    def endGame(self):
-        winner = self.playerWin()
-
-        if winner != -1 or len(self.vacants) == 0:
+        if win:
             return True, winner
+        # Tie
+        elif len(self.vacants) == 0:
+            return True, -1
 
-        return False, winner
+        return False, -1
 
 
-    def show(self):
-        for line in self.chess_board:
-            print(line)
+class GomokuGame(object):
+    def __init__(self, cb):
+        self.chess_board = cb
+
+    def show(self, p1, p2):
+        print("Player %d with X" % p1)
+        print("Player %d with O" % p2)
+        print()
+        for x in range(self.chess_board.size):
+            print("{0:8}".format(x), end='')
+        print('\r\n')
+        for i in range(self.chess_board.size - 1, -1, -1):
+            print("{0:4d}".format(i), end='')
+            for j in range(self.chess_board.size):
+                loc = i * self.chess_board.size + j
+                p = self.chess_board.states.get(loc, -1)
+                if p == p1:
+                    print('x'.center(5), end='')
+                elif p == p2:
+                    print('o'.center(5), end='')
+                else:
+                    print('.'.center(5), end='')
+            print('\r\n\r\n')
+
+    def start_play(self, player1, player2, start_player=0, visualize=True):
+        """start a game between two players"""
+        if start_player not in (0, 1):
+            raise Exception('start_player should be either 0 (player1 first) '
+                            'or 1 (player2 first)')
+        self.chess_board.set_player(start_player)
+
+        ps = self.chess_board.players
+        player1.set_id(ps[0])
+        player2.set_id(ps[1])
+        players = {ps[0]: player1, ps[1]: player2}
+        if visualize:
+            self.show(player1.id, player2.id)
+        while True:
+            player = players[self.chess_board.playing]
+            move = player.get_action(self.chess_board)
+            self.chess_board.move(move)
+
+            if visualize:
+                self.show(player1.id, player2.id)
+            end, winner = self.chess_board.end_game()
+
+            if end:
+                if visualize:
+                    if winner != -1:
+                        print("Game end. Winner is: ", players[winner])
+                    else:
+                        print("Game end. No one wins")
+                return winner
+
+    def start_self_play(self, player, visualize=0, temp=1e-3):
+        """ start a self-play game using a MCTS player, reuse the search tree,
+        and store the self-play data: (state, mcts_probs, z) for training
+        """
+        self.chess_board.set_player()
+        p1, p2 = self.chess_board.players
+        states, mcts_probs, step_players = [], [], []
+        while True:
+            move, move_probs = player.get_action(self.chess_board,
+                                                 temp=temp,
+                                                 return_prob=1)
+
+            # record game history
+            states.append(self.chess_board.get_state())
+            mcts_probs.append(move_probs)
+            step_players.append(self.chess_board.playing)
+            # perform a move
+            self.chess_board.move(move)
+
+            if visualize:
+                self.show(p1, p2)
+            end, winner = self.chess_board.end_game()
+
+            if end:
+                # winner from the perspective of the current player of each state
+                winners_z = np.zeros(len(step_players))
+
+                if winner != -1:
+                    winners_z[np.array(step_players) == winner] = 1.0
+                    winners_z[np.array(step_players) != winner] = -1.0
+                # reset Monte-Carlo Tree Search root node
+                player.reset_player()
+
+                if visualize:
+                    if winner != -1:
+                        print("Game end. Winner is player:", winner)
+                    else:
+                        print("Game end. Tie")
+                return winner, zip(states, mcts_probs, winners_z)

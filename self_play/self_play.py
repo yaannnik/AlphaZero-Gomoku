@@ -11,7 +11,6 @@ from mcts_alphaZero import MCTSPlayer
 from policy_value_net_numpy import PolicyValueNetNumpy
 
 
-
 class SelfPlay(object):
     """
     self play
@@ -40,9 +39,9 @@ def run():
     game = Game(board)
 
     # AI VS AI
-    policy_param = pickle.load(open(model_file, 'rb'),encoding='bytes')
+    policy_param = pickle.load(open(model_file, 'rb'), encoding='bytes')
     best_policy = PolicyValueNetNumpy(width, height, policy_param)
-    mcts_player = MCTSPlayer(best_policy.policy_value_fn,c_puct=5,n_playout=400)
+    mcts_player = MCTSPlayer(best_policy.policy_value_fn, c_puct=5, n_playout=400)
 
     # set start_player
     game.start_self_play(mcts_player, is_shown=1)

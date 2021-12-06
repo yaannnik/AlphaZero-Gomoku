@@ -83,7 +83,7 @@ class GomokuNet:
         self.optimizer = optim.Adam(self.net.parameters(),
                                     weight_decay=self.weight_decay)
 
-    def get_acts_and_val(self, states):
+    def batch_policy_value(self, states):
         """
         parameters:
             states - input states
@@ -98,9 +98,9 @@ class GomokuNet:
         act_probs = np.exp(act_tensor.detach().cpu().numpy())
         state_val = state_tensor.detach().cpu().numpy()
 
-        return act_probs.flatten(), state_val.flatten()
+        return act_probs, state_val
 
-    def get_from_board(self, cb):
+    def board_policy_value(self, cb):
         """
         parameters:
             cb - object of ChessBoard
@@ -108,14 +108,16 @@ class GomokuNet:
             actor_probs - possibility map of moves(dict)
             state_val - value map of states(float)
         """
-        states = cb.getState().reshape(-1, 4, self.size, self.size)
+        state = np.ascontiguousarray(cb.getState().reshape(-1, 4, self.size, self.size))
 
-        act_probs, state_vals = self.get_acts_and_val(states)
+        act_scores, value = self.net(
+            Variable(torch.FloatTensor(state)).to(self.device))
+        act_probs = np.exp(act_scores.detach().cpu().numpy().flatten())
 
         act_probs = zip(cb.vacants, act_probs[cb.vacants])
-        state_vals = state_vals[0]
+        state_val = value.detach()[0][0]
 
-        return act_probs, state_vals
+        return act_probs, state_val
 
     def set_learning_rate(self, lr):
         for param_group in self.optimizer.param_groups:
