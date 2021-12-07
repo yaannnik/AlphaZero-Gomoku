@@ -12,7 +12,7 @@ class ChessBoard:
         self.size = size
         self.N = n
         # 1 for player 0 and 2 for player 1
-        self.vacants = [i for i in range(size ** 2)]
+        self.vacants = [i for i in range(self.size ** 2)]
 
         self.players = [1, 2]
         self.playing = self.players[0]  # 1 or 2
@@ -20,8 +20,11 @@ class ChessBoard:
         self.pre_move = -1
         self.history = {}
 
-    def set_player(self, player):
+    def reset(self, player=0):
         self.playing = self.players[player]
+        self.vacants = [i for i in range(self.size ** 2)]
+        self.history = {}
+        self.pre_move = -1
 
     def get_state(self):
         state = np.zeros((4, self.size, self.size))
@@ -60,10 +63,9 @@ class ChessBoard:
         n = self.N
 
         moves = list(set(history.keys()))
-        print(moves)
 
         if len(moves) < n * 2 - 1:
-            return -1
+            return False, -1
 
         for m in moves:
             row = m // self.size
@@ -106,8 +108,8 @@ class GomokuGame(object):
         self.chess_board = cb
 
     def show(self, p1, p2):
-        print("Player %d with X" % p1)
-        print("Player %d with O" % p2)
+        print("Player %d with O" % p1)
+        print("Player %d with X" % p2)
         print()
         for x in range(self.chess_board.size):
             print("{0:8}".format(x), end='')
@@ -116,13 +118,13 @@ class GomokuGame(object):
             print("{0:4d}".format(i), end='')
             for j in range(self.chess_board.size):
                 loc = i * self.chess_board.size + j
-                p = self.chess_board.states.get(loc, -1)
+                p = self.chess_board.history.get(loc, -1)
                 if p == p1:
-                    print('x'.center(5), end='')
+                    print('O'.center(8), end='')
                 elif p == p2:
-                    print('o'.center(5), end='')
+                    print('X'.center(8), end='')
                 else:
-                    print('.'.center(5), end='')
+                    print('+'.center(8), end='')
             print('\r\n\r\n')
 
     def start_play(self, player1, player2, start_player=0, visualize=True):
@@ -130,7 +132,7 @@ class GomokuGame(object):
         if start_player not in (0, 1):
             raise Exception('start_player should be either 0 (player1 first) '
                             'or 1 (player2 first)')
-        self.chess_board.set_player(start_player)
+        self.chess_board.reset(start_player)
 
         ps = self.chess_board.players
         player1.set_id(ps[0])
@@ -159,7 +161,7 @@ class GomokuGame(object):
         """ start a self-play game using a MCTS player, reuse the search tree,
         and store the self-play data: (state, mcts_probs, z) for training
         """
-        self.chess_board.set_player()
+        self.chess_board.reset()
         p1, p2 = self.chess_board.players
         states, mcts_probs, step_players = [], [], []
         while True:

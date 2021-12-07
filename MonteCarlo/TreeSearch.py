@@ -5,7 +5,7 @@
 import numpy as np
 import copy
 from operator import itemgetter
-from TreeNode import TreeNode
+from MonteCarlo.TreeNode import TreeNode
 
 
 def rollout_policy(cb):

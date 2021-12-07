@@ -4,7 +4,7 @@
 
 import numpy as np
 import copy
-from TreeNode import TreeNode
+from MonteCarlo.TreeNode import TreeNode
 
 
 def softmax(x):
@@ -79,6 +79,7 @@ class MCTS(object):
         # calc the move probabilities based on visit counts at the root node
         act_visits = [(act, node.n_visits)
                       for act, node in self.root.children.items()]
+
         acts, visits = zip(*act_visits)
         act_probs = softmax(1.0/temp * np.log(np.array(visits) + 1e-10))
 
@@ -117,6 +118,7 @@ class AlphaZeroPlayer(object):
         vacant_moves = cb.vacants
         # the pi vector returned by MCTS as in the alphaGo Zero paper
         move_probs = np.zeros(cb.size**2)
+
         if len(vacant_moves) > 0:
             acts, probs = self.mcts.get_move_probs(cb, temp)
             move_probs[list(acts)] = probs

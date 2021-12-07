@@ -108,7 +108,7 @@ class GomokuNet:
             actor_probs - possibility map of moves(dict)
             state_val - value map of states(float)
         """
-        state = np.ascontiguousarray(cb.getState().reshape(-1, 4, self.size, self.size))
+        state = np.ascontiguousarray(cb.get_state().reshape(-1, 4, self.size, self.size))
 
         act_scores, value = self.net(
             Variable(torch.FloatTensor(state)).to(self.device))
