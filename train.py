@@ -5,13 +5,16 @@
 import random
 import numpy as np
 from collections import defaultdict, deque
-from Gomoku.Gomoku import ChessBoard, GomokuGame
-from MonteCarlo.TreeSearch import MCTSPlayer
-from MonteCarlo.AlphaZero import AlphaZeroPlayer
+from Gomoku.Chessboard import ChessBoard
+from Gomoku.Gomoku import GomokuGame
+from Player.MTCSPlayer import MCTSPlayer
+from Player.AlphaZeroPlayer import AlphaZeroPlayer
 from PytorchNet.PytorchNet import GomokuNet  # Pytorch
 # from KerasNet.KerasNet import GomokuNet # Keras
+from matplotlib import pyplot as plt
 
-class TrainPipeline():
+
+class Trainer:
     def __init__(self, weights=None):
         # params of the board and the game
         self.size = 5
@@ -19,7 +22,7 @@ class TrainPipeline():
         self.chess_board = ChessBoard(size=self.size, n=self.n)
         self.game = GomokuGame(self.chess_board)
         # training params
-        self.learn_rate = 2e-3
+        self.lr = 2e-3
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
         self.temp = 1.0  # the temperature param
         self.n_playout = 400  # num of simulations for each move
@@ -30,8 +33,7 @@ class TrainPipeline():
         self.play_batch_size = 1
         self.epochs = 5  # num of train_steps for each update
         self.kl_targ = 0.02
-        self.check_freq = 50
-        self.game_batch_num = 50
+        self.iterations = 10
         self.best_win_percentage = 0.0
         # num of simulations used for the pure mcts, which is used as
         # the opponent to evaluate the trained policy
@@ -99,7 +101,7 @@ class TrainPipeline():
                 states=state_batch,
                 mc_probs=mcts_probs_batch,
                 winners=winner_batch,
-                lr=self.learn_rate * self.lr_multiplier)
+                lr=self.lr * self.lr_multiplier)
             new_probs, new_v = self.gomoku_net.batch_policy_value(state_batch)
             kl = np.mean(np.sum(old_probs *
                                 (np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
@@ -159,34 +161,46 @@ class TrainPipeline():
         run the training pipeline
         """
         try:
-            for i in range(self.game_batch_num):
-                self.game.show(1, 2)
+            loss_, entropy_, iters_ = [], [], []
+            for i in range(self.iterations):
+                iter = i + 1
                 self.collect_self_play_data(self.play_batch_size)
-                print("batch:{}, episode_length:{}".format(i+1, self.episode_len))
+                print("batch:%d, episode_length:%d" % (iter, self.episode_len))
 
                 if len(self.data_buffer) > self.batch_size:
                     loss, entropy = self.policy_update()
+                    loss_.append(loss)
+                    entropy_.append(entropy)
+                    iters_.append(iter)
 
                 # check the performance of the current model,
                 # and save the model params
-                if (i+1) % self.check_freq == 0:
-                    print("current self-play batch: {}".format(i+1))
+                if (i+1) % 100 == 0:
+                    print("current self-play batch: %d" % iter)
                     win_percentage = self.policy_evaluate()
-                    self.gomoku_net.save_model('./current_policy.model')
+                    self.gomoku_net.save_model('./current_policy.pth')
 
                     if win_percentage > self.best_win_percentage:
                         print("New best policy!")
                         self.best_win_percentage = win_percentage
                         # update the best_policy
-                        self.gomoku_net.save_model('./best_policy.model')
+                        self.gomoku_net.save_model('./best_policy.pth')
 
                         if (self.best_win_percentage == 1.0 and
                                 self.mcts_playout < 5000):
                             self.mcts_playout += 1000
                             self.best_win_percentage = 0.0
+            plt.plot(iters_, loss_, label="loss")
+            plt.plot(iters_, entropy_, label="entropy")
+            plt.legend(loc='upper right')
+            plt.xlabel("iterations")
+            plt.title("Pytorch Net")
+            # plt.show()
+            plt.savefig("./PytorchNet.jpg")
         except KeyboardInterrupt:
             print('\n\rquit')
 
+
 if __name__ == '__main__':
-    training_pipeline = TrainPipeline()
-    training_pipeline.run()
+    training = Trainer()
+    training.run()

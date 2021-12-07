@@ -26,13 +26,13 @@ class PlainNet(nn.Module):
         self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
 
         # action policy layers
-        self.conv_act = nn.Conv2d(128, 4, kernel_size=1)
-        self.fc_act = nn.Linear((self.size ** 2) * 4, self.size ** 2)
+        self.act_conv1 = nn.Conv2d(128, 4, kernel_size=1)
+        self.act_fc1 = nn.Linear((self.size ** 2) * 4, self.size ** 2)
 
         # state value layers
-        self.conv_val = nn.Conv2d(128, 2, kernel_size=1)
-        self.fc_val1 = nn.Linear((self.size ** 2) * 2, 64)
-        self.fc_val2 = nn.Linear(64, 1)
+        self.val_conv1 = nn.Conv2d(128, 2, kernel_size=1)
+        self.val_fc1 = nn.Linear((self.size ** 2) * 2, 64)
+        self.val_fc2 = nn.Linear(64, 1)
 
     def forward(self, input):
         """
@@ -50,15 +50,15 @@ class PlainNet(nn.Module):
         x = F.relu(self.conv3(x))
 
         # action policy layers
-        x_act = F.relu(self.conv_act(x))
+        x_act = F.relu(self.act_conv1(x))
         x_act = x_act.view(-1, (self.size ** 2) * 4)
-        act_prob = F.log_softmax(self.fc_act(x_act), dim=1)
+        act_prob = F.log_softmax(self.act_fc1(x_act), dim=1)
 
         # state value layers
-        x_val = F.relu(self.conv_val(x))
+        x_val = F.relu(self.val_conv1(x))
         x_val = x_val.view(-1, (self.size ** 2) * 2)
-        x_val = F.relu(self.fc_val1(x_val))
-        state_val = torch.tanh(self.fc_val2(x_val))
+        x_val = F.relu(self.val_fc1(x_val))
+        state_val = torch.tanh(self.val_fc2(x_val))
 
         return act_prob, state_val
 

@@ -8,33 +8,6 @@ from operator import itemgetter
 from MonteCarlo.TreeNode import TreeNode
 
 
-def rollout_policy(cb):
-    """
-    a coarse, fast version of policy_fn used in the rollout phase.
-    parameters:
-        cb - ChessBoard
-    return:
-        policy - zip(cb.vacants, act_probs)
-    """
-    # rollout randomly
-    act_probs = np.random.rand(len(cb.vacants))
-    return zip(cb.vacants, act_probs)
-
-
-def policy_value(cb):
-    """
-    a function that takes in a state and outputs a list of (action, probability)
-    tuples and a score for the state
-    parameters:
-        cb - ChessBoard
-    return:
-        policy, value - zip(cb.vacants, act_probs), 0
-    """
-    # return uniform probabilities and 0 score for pure MCTS
-    act_probs = np.ones(len(cb.vacants)) / len(cb.vacants)
-    return zip(cb.vacants, act_probs), 0
-
-
 class MCTS(object):
     def __init__(self, policy_value_func, c_factor=5, n_playout=10000):
         """
@@ -85,16 +58,16 @@ class MCTS(object):
         """
         player = cb.playing
         winner = 0
+
         for i in range(limit):
             end, winner = cb.end_game()
             if end:
+                print("WARNING: rollout reached move limit")
                 break
-            act_probs = rollout_policy(cb)
+            act_probs = zip(cb.vacants, np.random.rand(len(cb.vacants)))
             optimal_action = max(act_probs, key=itemgetter(1))[0]
             cb.move(optimal_action)
-        else:
-            # If no break from the loop, issue a warning.
-            print("WARNING: rollout reached move limit")
+
         if winner == -1:  # tie
             return 0
         else:
@@ -115,41 +88,16 @@ class MCTS(object):
         return max(self.root.children.items(),
                    key=lambda act_node: act_node[1].n_visits)[0]
 
-    def update_with_move(self, last_move):
+    def update_with_move(self, prev_move):
         """
         Step forward in the tree, keeping everything we already know
         about the subtree.
         """
-        if last_move in self.root.children:
-            self.root = self.root.children[last_move]
+        if prev_move in self.root.children:
+            self.root = self.root.children[prev_move]
             self.root.parent = None
         else:
             self.root = TreeNode(None, 1.0)
 
     def __str__(self):
         return "MCTS"
-
-
-class MCTSPlayer(object):
-    """AI player based on MCTS"""
-    def __init__(self, c_factor=5, n_playout=2000):
-        self.mcts = MCTS(policy_value, c_factor, n_playout)
-        self.player = 0
-
-    def set_id(self, p):
-        self.player = p
-
-    def reset_player(self):
-        self.mcts.update_with_move(-1)
-
-    def get_action(self, cb):
-        vacant_moves = cb.vacants
-        if len(vacant_moves) > 0:
-            move = self.mcts.get_move(cb)
-            self.mcts.update_with_move(-1)
-            return move
-        else:
-            print("WARNING: No Vacant Position")
-
-    def __str__(self):
-        return "MCTS {}".format(self.player)

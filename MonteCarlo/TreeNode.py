@@ -3,8 +3,6 @@
 """
 
 import numpy as np
-import copy
-from operator import itemgetter
 
 
 class TreeNode(object):
