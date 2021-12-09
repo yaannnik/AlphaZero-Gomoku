@@ -28,23 +28,23 @@ class Trainer:
         self.n_playout = 400  # num of simulations for each move
         self.c_factor = 5
         self.buffer_size = 10000
-        self.batch_size = 512  # mini-batch size for training
+        self.sampling_size = 512  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
         self.play_batch_size = 1
         self.epochs = 5  # num of train_steps for each update
         self.kl_targ = 0.02
-        self.iterations = 10
+        self.iterations = 50
         self.best_win_percentage = 0.0
         # num of simulations used for the pure mcts, which is used as
         # the opponent to evaluate the trained policy
         self.mcts_playout = 1000
         self.episode_len = 0
         if weights:
-            # start training from an initial policy-value net
+            # load a pre-trained model
             self.gomoku_net = GomokuNet(size=self.size,
                                         weights=weights)
         else:
-            # start training from a new policy-value net
+            # randomly initialized model
             self.gomoku_net = GomokuNet(size=self.size)
 
         self.alphazero_player = AlphaZeroPlayer(policy_value_func=self.gomoku_net.board_policy_value,
@@ -54,8 +54,8 @@ class Trainer:
 
     def augment_data(self, play_data):
         """
-        augment the data set by rotation and flipping
-        play_data: [(state, mcts_prob, winner_z), ..., ...]
+        data augmentation by rotation and flipping
+        play_data: [(s, pi, z), ..., ...] stored during each game played
         """
         augmented_data = []
         for state, mcts_prob, winner in play_data:
@@ -75,9 +75,9 @@ class Trainer:
                                        winner))
         return augmented_data
 
-    def collect_self_play_data(self, n_games=1):
+    def store_data(self, n_games=1):
         """
-        collect self-play data for training
+        collect self-play data (s, pi, z) for training
         """
         for i in range(n_games):
             winner, play_data = self.game.start_self_play(player=self.alphazero_player,
@@ -90,19 +90,18 @@ class Trainer:
 
     def policy_update(self):
         """
-        update the policy-value net
+        sample from data buffer to train theta, each sample is composed of (s, pi, z)
+        return:
+            loss - loss
+            entropy - entropy
         """
-        mini_batch = random.sample(self.data_buffer, self.batch_size)
-        state_batch, mcts_probs_batch, winner_batch = \
-            [data[0] for data in mini_batch], [data[1] for data in mini_batch], [data[2] for data in mini_batch]
-        old_probs, old_v = self.gomoku_net.batch_policy_value(state_batch)
+        samples = random.sample(self.data_buffer, self.sampling_size)
+        s, pi, z = \
+            [sample[0] for sample in samples], [sample[1] for sample in samples], [sample[2] for sample in samples]
+        old_probs, old_v = self.gomoku_net.sample_policy_value(s)
         for i in range(self.epochs):
-            loss, entropy = self.gomoku_net.train_step(
-                states=state_batch,
-                mc_probs=mcts_probs_batch,
-                winners=winner_batch,
-                lr=self.lr * self.lr_multiplier)
-            new_probs, new_v = self.gomoku_net.batch_policy_value(state_batch)
+            loss, entropy = self.gomoku_net.train_step(s=s, pi=pi, z=z, lr=self.lr * self.lr_multiplier)
+            new_probs, new_v = self.gomoku_net.sample_policy_value(s)
             kl = np.mean(np.sum(old_probs *
                                 (np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
                                 axis=1))
@@ -115,11 +114,11 @@ class Trainer:
             self.lr_multiplier *= 1.5
 
         explained_var_old = (1 -
-                             np.var(np.array(winner_batch) - old_v.flatten()) /
-                             np.var(np.array(winner_batch)))
+                             np.var(np.array(z) - old_v.flatten()) /
+                             np.var(np.array(z)))
         explained_var_new = (1 -
-                             np.var(np.array(winner_batch) - new_v.flatten()) /
-                             np.var(np.array(winner_batch)))
+                             np.var(np.array(z) - new_v.flatten()) /
+                             np.var(np.array(z)))
         print(("kl:{:.5f},\n"
                "lr_multiplier:{:.3f},\n"
                "loss:{},\n"
@@ -136,8 +135,7 @@ class Trainer:
 
     def policy_evaluate(self, n_games=10):
         """
-        Evaluate the trained policy by playing against the pure MCTS player
-        Note: this is only for monitoring the progress of training
+        play with a MCTS player to evaluate temporary policy
         """
         alphazero_player = AlphaZeroPlayer(policy_value_func=self.gomoku_net.board_policy_value,
                                            c_factor=self.c_factor,
@@ -152,39 +150,36 @@ class Trainer:
                                           visualize=0)
             wins[winner] += 1
         win_percentage = 1.0 * (wins[1] + 0.5 * wins[-1]) / n_games
-        print("num_playout:{}, win: {}, lose: {}, tie:{}".format(self.mcts_playout,
-                                                                 wins[1], wins[2], wins[-1]))
+        print("games_played: %d, win: %d, lose: %d, tie: %d" % (self.mcts_playout, wins[1], wins[2], wins[-1]))
         return win_percentage
 
     def run(self):
         """
-        run the training pipeline
+        run the training process
         """
         try:
             loss_, entropy_, iters_ = [], [], []
             for i in range(self.iterations):
-                iter = i + 1
-                self.collect_self_play_data(self.play_batch_size)
-                print("batch:%d, episode_length:%d" % (iter, self.episode_len))
+                self.store_data(self.play_batch_size)
+                print("iteration: %d, episode_length: %d" % (i, self.episode_len))
 
-                if len(self.data_buffer) > self.batch_size:
+                if len(self.data_buffer) > self.sampling_size:
                     loss, entropy = self.policy_update()
                     loss_.append(loss)
                     entropy_.append(entropy)
-                    iters_.append(iter)
+                    iters_.append(i)
 
-                # check the performance of the current model,
-                # and save the model params
-                if (i+1) % 100 == 0:
+                # evaluate the model, save check points
+                if (i + 1) % 100 == 0:
                     print("current self-play batch: %d" % iter)
                     win_percentage = self.policy_evaluate()
-                    self.gomoku_net.save_model('./current_policy.pth')
+                    self.gomoku_net.save_model('./PyTorchCheckpoint.pth')
 
                     if win_percentage > self.best_win_percentage:
                         print("New best policy!")
                         self.best_win_percentage = win_percentage
                         # update the best_policy
-                        self.gomoku_net.save_model('./best_policy.pth')
+                        self.gomoku_net.save_model('./PytorchNet.pth')
 
                         if (self.best_win_percentage == 1.0 and
                                 self.mcts_playout < 5000):

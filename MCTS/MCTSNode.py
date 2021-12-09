@@ -41,11 +41,11 @@ class MCTSNode:
         max_value = 0
         for action in self.children:
             self.children[action].total_n = self.total_n
-            if (self.children[action].get_UCBvalue(C) > max_value):
+            if self.children[action].get_UCBvalue(C) > max_value:
                 max_set.clear()
                 max_set.append(action)
                 max_value = self.children[action].get_UCBvalue(C)
-            elif (self.children[action].get_UCBvalue(C) == max_value):
+            elif self.children[action].get_UCBvalue(C) == max_value:
                 max_set.append(action)
         next_action = np.random.choice(len(max_set))
         return max_set[next_action], self.children[max_set[next_action]]
@@ -73,8 +73,8 @@ class MCTS:
         while not current_node.is_leaf():
             next_action, current_node = current_node.children_selection(self.C)
             state_sim.move(next_action)
-        End, _ = state_sim.endGame()
-        if not End:
+        end, _ = state_sim.end_game()
+        if not end:
             for vacant in state_sim.vacants:
                 current_node.expansion(vacant)
             rand_choice = np.random.choice(len(state_sim.vacants))
@@ -85,16 +85,16 @@ class MCTS:
         current_node.back_propagation(simulation_winner)
 
     def simulation(self, state_sim):
-        End, Winner = state_sim.end_game()
+        end, winner = state_sim.end_game()
         new_leaf_player = state_sim.playing
-        while not End:
+        while not end:
             rand_choice = np.random.choice(len(state_sim.vacants))
             next_action = state_sim.vacants[rand_choice]
             state_sim.move(next_action)
-            End, Winner = state_sim.end_game()
-        if Winner == -1:
+            end, winner = state_sim.end_game()
+        if winner == -1:
             return 0
-        elif Winner == new_leaf_player:
+        elif winner == new_leaf_player:
             return 1
         else:
             return -1
@@ -106,11 +106,11 @@ class MCTS:
         next_actions = []
         max_visit = 0
         for action in self.root.children:
-            if (self.root.children[action].node_n > max_visit):
+            if self.root.children[action].node_n > max_visit:
                 next_actions.clear()
                 next_actions.append(action)
                 max_visit = self.root.children[action].node_n
-            elif (self.root.children[action].node_n == max_visit):
+            elif self.root.children[action].node_n == max_visit:
                 next_actions.append(action)
         next_action = np.random.choice(len(next_actions))
         return next_actions[next_action]

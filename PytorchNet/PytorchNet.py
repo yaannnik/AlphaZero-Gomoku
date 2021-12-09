@@ -80,10 +80,9 @@ class GomokuNet:
         if weights is not None:
             self.net.load_state_dict(torch.load(weights))
 
-        self.optimizer = optim.Adam(self.net.parameters(),
-                                    weight_decay=self.weight_decay)
+        self.optimizer = optim.Adam(self.net.parameters(), weight_decay=self.weight_decay)
 
-    def batch_policy_value(self, states):
+    def sample_policy_value(self, states):
         """
         parameters:
             states - input states
@@ -123,20 +122,27 @@ class GomokuNet:
         for param_group in self.optimizer.param_groups:
             param_group['lr'] = lr
 
-    def train_step(self, states, mc_probs, winners, lr):
-        states = Variable(torch.FloatTensor(states).to(self.device))
-        mc_probs = Variable(torch.FloatTensor(mc_probs).to(self.device))
-        winners = Variable(torch.FloatTensor(winners).to(self.device))
+    def train_step(self, s, pi, z, lr):
+        """
+        train in each time step, (s, pi, z) is identical with AlphaZero paper
+        parameters:
+            s - state
+            pi - policy
+            z - winner
+            lr - learning rate
+        """
+        s = Variable(torch.FloatTensor(s).to(self.device))
+        pi = Variable(torch.FloatTensor(pi).to(self.device))
+        z = Variable(torch.FloatTensor(z).to(self.device))
 
         self.optimizer.zero_grad()
         self.set_learning_rate(lr)
 
         # forward propagation
-        act_scores, value = self.net(states)
-        # define the loss = (z - v)^2 - pi^T * log(p) + c||theta||^2
-        # Note: the L2 penalty is incorporated in optimizer
-        value_loss = F.mse_loss(value.view(-1), winners)
-        policy_loss = -torch.mean(torch.sum(mc_probs * act_scores, 1))
+        p, v = self.net(s)
+        # loss = (z - v)^2 - pi^T * log(p) + c||theta||^2
+        value_loss = F.mse_loss(v.view(-1), z)
+        policy_loss = -torch.mean(torch.sum(pi * p, 1))
         loss = value_loss + policy_loss
 
         # backward propagation and optimize
@@ -144,17 +150,13 @@ class GomokuNet:
         self.optimizer.step()
 
         # calc policy entropy, for monitoring only
-        entropy = -torch.mean(torch.sum(torch.exp(act_scores) * act_scores, 1))
+        entropy = -torch.mean(torch.sum(torch.exp(p) * p, 1))
 
         return loss.item(), entropy.item()
-
-    def get_param(self):
-        params = self.net.state_dict()
-        return params
 
     def save_model(self, model_path):
         """
         save model params to file 
         """
-        params = self.get_param()  # get model params
+        params = self.net.state_dict()  # get model params
         torch.save(params, model_path)
