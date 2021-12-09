@@ -8,7 +8,7 @@ from __future__ import print_function
 from keras import Input, Model
 from keras.layers import Conv2D, Dense, Flatten
 from keras.regularizers import l2
-from keras.optimizers import Adam
+from keras.optimizers import adam_v2
 import keras.backend as K
 import numpy as np
 import pickle
@@ -73,7 +73,7 @@ class GomokuNet():
         """
 
         # get the train op   
-        opt = Adam()
+        opt = adam_v2.Adam()
         losses = ['categorical_crossentropy', 'mean_squared_error']
         self.model.compile(optimizer=opt, loss=losses)
 
@@ -85,11 +85,11 @@ class GomokuNet():
             mcts_probs_union = np.array(pi)
             winner_union = np.array(z)
             loss = self.model.evaluate(state_input_union, [mcts_probs_union, winner_union],
-                                       batch_size=len(state_input), verbose=0)
+                                       batch_size=len(s), verbose=0)
             action_probs, _ = self.model.predict_on_batch(state_input_union)
             entropy = self_entropy(action_probs)
             K.set_value(self.model.optimizer.lr, lr)
-            self.model.fit(state_input_union, [mcts_probs_union, winner_union], batch_size=len(state_input), verbose=0)
+            self.model.fit(state_input_union, [mcts_probs_union, winner_union], batch_size=len(s), verbose=0)
             return loss[0], entropy
 
         self.train_step = train_step
