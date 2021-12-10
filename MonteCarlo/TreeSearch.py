@@ -57,16 +57,17 @@ class MCTS(object):
         and 0 if it is a tie.
         """
         player = cb.playing
-        winner = 0
 
         for i in range(limit):
             end, winner = cb.end_game()
             if end:
-                print("WARNING: rollout reached move limit")
                 break
             act_probs = zip(cb.vacants, np.random.rand(len(cb.vacants)))
             optimal_action = max(act_probs, key=itemgetter(1))[0]
             cb.move(optimal_action)
+        else:
+            # If no break from the loop, issue a warning.
+            print("WARNING: rollout reached move limit")
 
         if winner == -1:  # tie
             return 0

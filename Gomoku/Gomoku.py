@@ -26,7 +26,7 @@ class GomokuGame(object):
                 elif p == p2:
                     print('X'.center(8), end='')
                 else:
-                    print('+'.center(8), end='')
+                    print('.'.center(8), end='')
             print('\r\n\r\n')
 
     def start_play(self, player1, player2, start_player=0, visualize=True):
@@ -60,7 +60,8 @@ class GomokuGame(object):
                 return winner
 
     def start_self_play(self, player, visualize=0, temp=1e-3):
-        """ start a self-play game using a MCTS player, reuse the search tree,
+        """
+        start a self-play game using a MCTS player, reuse the search tree,
         and store the self-play data: (state, mcts_probs, z) for training
         """
         self.chess_board.reset()

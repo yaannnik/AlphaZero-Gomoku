@@ -12,6 +12,8 @@ class ManualPlayer:
     def get_action(self, cb):
         while True:
             pos = input("Make your move (row, col): ")
+            if pos == '':
+                continue
             pos = pos.split(",")
             row, col = int(pos[0]), int(pos[1])
             move = row * cb.size + col

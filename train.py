@@ -9,16 +9,16 @@ from Gomoku.Chessboard import ChessBoard
 from Gomoku.Gomoku import GomokuGame
 from Player.MTCSPlayer import MCTSPlayer
 from Player.AlphaZeroPlayer import AlphaZeroPlayer
-from PytorchNet.PytorchNet import GomokuNet  # Pytorch
-# from KerasNet.KerasNet import GomokuNet # Keras
+# from PytorchNet.PytorchNet import GomokuNet  # Pytorch
+from KerasNet.KerasNet import GomokuNet # Keras
 from matplotlib import pyplot as plt
 
 
 class Trainer:
     def __init__(self, weights=None):
         # params of the board and the game
-        self.size = 5
-        self.n = 3
+        self.size = 8
+        self.n = 5
         self.chess_board = ChessBoard(size=self.size, n=self.n)
         self.game = GomokuGame(self.chess_board)
         # training params
@@ -33,7 +33,7 @@ class Trainer:
         self.play_batch_size = 1
         self.epochs = 5  # num of train_steps for each update
         self.kl_targ = 0.02
-        self.iterations = 50
+        self.iterations = 1500
         self.best_win_percentage = 0.0
         # num of simulations used for the pure mcts, which is used as
         # the opponent to evaluate the trained policy
@@ -150,7 +150,7 @@ class Trainer:
                                           visualize=0)
             wins[winner] += 1
         win_percentage = 1.0 * (wins[1] + 0.5 * wins[-1]) / n_games
-        print("games_played: %d, win: %d, lose: %d, tie: %d" % (self.mcts_playout, wins[1], wins[2], wins[-1]))
+        print("games_played: %d, win: %d, lose: %d, tie: %d" % (n_games, wins[1], wins[2], wins[-1]))
         return win_percentage
 
     def run(self):
@@ -171,15 +171,15 @@ class Trainer:
 
                 # evaluate the model, save check points
                 if (i + 1) % 100 == 0:
-                    print("current self-play batch: %d" % iter)
+                    print("current self-play iteration: %d" % i)
                     win_percentage = self.policy_evaluate()
-                    self.gomoku_net.save_model('./PyTorchCheckpoint.pth')
+                    self.gomoku_net.save_model('./KerasCheckpoint.model')
 
                     if win_percentage > self.best_win_percentage:
                         print("New best policy!")
                         self.best_win_percentage = win_percentage
                         # update the best_policy
-                        self.gomoku_net.save_model('./PytorchNet.pth')
+                        self.gomoku_net.save_model('./KerasNet.model')
 
                         if (self.best_win_percentage == 1.0 and
                                 self.mcts_playout < 5000):
