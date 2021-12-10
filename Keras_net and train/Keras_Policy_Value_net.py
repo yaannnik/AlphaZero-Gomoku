@@ -23,6 +23,10 @@ class NetbyKeras():
         self.l2_const = 1e-4  #l2 penalty 
         self.create_policy_value_net()   
         self._loss_train_op()
+        if model_file:
+            print(model_file)
+            net_params = pickle.load(open(model_file, 'rb'))
+            self.model.set_weights(net_params)
 
         
     def create_policy_value_net(self):
