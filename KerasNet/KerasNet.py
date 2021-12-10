@@ -5,9 +5,9 @@ author: Chaoran Wei, Ziyu Liu
 """
 
 from keras import Input, Model
-from keras.layers import Conv2D, Dense, Flatten,Concatenate
+from keras.layers import Conv2D, Dense, Flatten, Concatenate
 from keras.regularizers import l2
-from keras.optimizers import adam_v2
+from keras.optimizers import Adam
 import keras.backend as K
 import numpy as np
 import pickle
@@ -31,14 +31,24 @@ class GomokuNet:
         inpu = Input((4, self.size, self.size))
 
         # conv layers
-        Conv = Conv2D(filters=32, kernel_size=(3, 3), padding="same", data_format="channels_last", activation="relu", kernel_regularizer=l2(self.l2_const))(inpu)
-        Conv = Conv2D(filters=64, kernel_size=(3, 3), padding="same", data_format="channels_last", activation="relu", kernel_regularizer=l2(self.l2_const))(Conv)
-        Conv = Conv2D(filters=128, kernel_size=(3, 3), padding="same", data_format="channels_last", activation="relu", kernel_regularizer=l2(self.l2_const))(Conv)
-        policy_net = Conv2D(filters=4, kernel_size=(1, 1), data_format="channels_last", activation="relu", kernel_regularizer=l2(self.l2_const))(Conv)
+        Conv = Conv2D(filters=32, kernel_size=(3, 3), padding="same", data_format="channels_first", activation="relu",
+                      kernel_regularizer=l2(self.l2_const))(inpu)
+        Conv = Conv2D(filters=64, kernel_size=(3, 3), padding="same", data_format="channels_first", activation="relu",
+                      kernel_regularizer=l2(self.l2_const))(Conv)
+        Conv1 = Concatenate(axis=1)([inpu, Conv])
+        print('Conv', Conv1.shape)
+        Conv = Conv2D(filters=128, kernel_size=(3, 3), padding="same", data_format="channels_first", activation="relu",
+                      kernel_regularizer=l2(self.l2_const))(Conv1)
+        print('Conv', Conv.shape)
+        # action policy layers
+        policy_net = Conv2D(filters=4, kernel_size=(1, 1), data_format="channels_first", activation="relu",
+                            kernel_regularizer=l2(self.l2_const))(Conv)
         policy_net = Flatten()(policy_net)
-        self.policy_net = Dense(self.size*self.size, activation="softmax", kernel_regularizer=l2(self.l2_const))(policy_net)
+        self.policy_net = Dense(self.size*self.size, activation="softmax",
+                                kernel_regularizer=l2(self.l2_const))(policy_net)
         # state value layers
-        value_net = Conv2D(filters=2, kernel_size=(1, 1), data_format="channels_last", activation="relu", kernel_regularizer=l2(self.l2_const))(Conv)
+        value_net = Conv2D(filters=2, kernel_size=(1, 1), data_format="channels_first", activation="relu",
+                           kernel_regularizer=l2(self.l2_const))(Conv)
         value_net = Flatten()(value_net)
         value_net = Dense(64, kernel_regularizer=l2(self.l2_const))(value_net)
         self.value_net = Dense(1, activation="tanh", kernel_regularizer=l2(self.l2_const))(value_net)
@@ -69,7 +79,7 @@ class GomokuNet:
         """
 
         # get the train op   
-        opt = adam_v2.Adam()
+        opt = Adam()
         losses = ['categorical_crossentropy', 'mean_squared_error']
         self.model.compile(optimizer=opt, loss=losses)
 

@@ -10,7 +10,7 @@ from Gomoku.Gomoku import GomokuGame
 from Player.MTCSPlayer import MCTSPlayer
 from Player.AlphaZeroPlayer import AlphaZeroPlayer
 # from PytorchNet.PytorchNet import GomokuNet  # Pytorch
-from KerasNet.KerasNet import GomokuNet # Keras
+from KerasNet.KerasNet import GomokuNet  # Keras
 from matplotlib import pyplot as plt
 
 
@@ -170,10 +170,10 @@ class Trainer:
                     iters_.append(i)
 
                 # evaluate the model, save check points
-                if (i + 1) % 100 == 0:
+                if (i + 1) % 10 == 0:
                     print("current self-play iteration: %d" % i)
                     win_percentage = self.policy_evaluate()
-                    self.gomoku_net.save_model('./KerasCheckpoint.model')
+                    self.gomoku_net.save_model('./KerasCheckpoint-%d.model' % i)
 
                     if win_percentage > self.best_win_percentage:
                         print("New best policy!")
