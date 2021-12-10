@@ -11,8 +11,11 @@ from collections import defaultdict, deque
 from game import Board, Game
 from mcts_pure import MCTSPlayer as MCTS_Pure
 from mcts_alphaZero import MCTSPlayer
-from Keras_Policy_Value_net2 import NetbyKeras
+from Keras_Policy_Value_net import NetbyKeras
 import matplotlib.pyplot as plt
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 class TrainPipeline():
     def __init__(self, init_model=None):
@@ -35,16 +38,20 @@ class TrainPipeline():
         self.epochs = 5  # num of train_steps for each update
         self.kl_targ = 0.02
         self.check_freq = 50
-        self.game_batch_num = 1500
+        self.game_batch_num = 3000
         self.best_win_ratio = 0.0
         # num of simulations used for the pure mcts, which is used as
         # the opponent to evaluate the trained policy
         self.pure_mcts_playout_num = 1000
         self.res=[]
         self.res_1=[]
+        self.ans=[]
 
         # start training from a new policy-value net
-        self.policy_value_net = NetbyKeras(self.board_width, self.board_height)
+        if init_model:
+            self.policy_value_net = NetbyKeras(self.board_width, self.board_height,model_file=init_model)
+        else:
+            self.policy_value_net = NetbyKeras(self.board_width, self.board_height)
         self.mcts_player = MCTSPlayer(self.policy_value_net.policy_value_fn,c_puct=self.c_puct,n_playout=self.n_playout,is_selfplay=1)
 
     def get_equi_data(self, play_data):
@@ -121,6 +128,7 @@ class TrainPipeline():
             print("batch i:{}, episode_len:{}".format(i+1, self.episode_len))
             if len(self.data_buffer) > self.batch_size:
                 loss, entropy = self.policy_update()
+                self.ans.append(i+1)
                 self.res.append(loss)
                 self.res_1.append(entropy)
             # check the performance of the current model,
@@ -137,13 +145,14 @@ class TrainPipeline():
                     if (self.best_win_ratio == 1.0 and self.pure_mcts_playout_num < 5000):
                         self.pure_mcts_playout_num += 1000
                         self.best_win_ratio = 0.0
-        n = np.arange(1,len(self.res)+1,1)
-        plt.plot(n,self.res,label='loss')
-        plt.plot(n,self.res_1,label='entropy')
-        plt.xlabel("game batch number")
-        plt.ylabel("loss")
+        # n = np.arange(1,len(self.res)+1,1)
+        plt.plot(self.ans,self.res,label='loss')
+        plt.plot(self.ans,self.res_1,label='entropy')
+        plt.title('keras Net')
+        plt.xlabel("iterations")
+        plt.ylabel("loss or entropy")
         plt.legend()
-        plt.savefig('/Users/weichaoran/6885/project/figure')
+        plt.savefig('12.9 batch3000.png')
         plt.show()
         plt.close
 
