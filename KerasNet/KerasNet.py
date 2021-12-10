@@ -35,11 +35,11 @@ class GomokuNet:
                       kernel_regularizer=l2(self.l2_const))(inpu)
         Conv = Conv2D(filters=64, kernel_size=(3, 3), padding="same", data_format="channels_first", activation="relu",
                       kernel_regularizer=l2(self.l2_const))(Conv)
+
         Conv1 = Concatenate(axis=1)([inpu, Conv])
-        print('Conv', Conv1.shape)
         Conv = Conv2D(filters=128, kernel_size=(3, 3), padding="same", data_format="channels_first", activation="relu",
                       kernel_regularizer=l2(self.l2_const))(Conv1)
-        print('Conv', Conv.shape)
+
         # action policy layers
         policy_net = Conv2D(filters=4, kernel_size=(1, 1), data_format="channels_first", activation="relu",
                             kernel_regularizer=l2(self.l2_const))(Conv)
