@@ -62,7 +62,7 @@ class MCTSNode:
 
 
 class MCTS:
-    def __init__(self, state, numplay, C=1):
+    def __init__(self, state, C=1, numplay = 100):
         self.root = MCTSNode(None, 0)
         self.state = state
         self.numplay = numplay
@@ -82,7 +82,7 @@ class MCTS:
             current_node = current_node.children[next_action]
             state_sim.move(next_action)
         simulation_winner = self.simulation(state_sim)
-        current_node.back_propagation(simulation_winner)
+        current_node.back_propagation(-simulation_winner)
 
     def simulation(self, state_sim):
         end, winner = state_sim.end_game()
@@ -117,10 +117,10 @@ class MCTS:
 
 
 class MCTSPlayer:
-    def __init__(self, state, numplay=1000, C=1):
+    def __init__(self, state, c_factor=1, n_playout=1000):
         self.state = state
-        self.numplay = numplay
-        self.mcts = MCTS(state, numplay, C)
+        self.numplay = n_playout
+        self.mcts = MCTS(state, c_factor, n_playout)
 
     def reset(self):
         self.mcts.root = MCTSNode(None, 0)
