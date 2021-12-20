@@ -30,6 +30,8 @@ class MCTS(object):
         Run a single playout from the root to the leaf, getting a value at
         the leaf and propagating it back through its parents.
         State is modified in-place, so a copy must be provided.
+        Parameters:
+            cb - chessboard
         """
         node = self.root
         while True:
@@ -53,8 +55,14 @@ class MCTS(object):
     def evaluate_rollout(self, cb, limit=1000):
         """
         Use the rollout policy to play until the end of the game,
-        get award +1 if the current player wins, -1 if the opponent wins,
+        get award + 1 if the current player wins, -1 if the opponent wins,
         and 0 if it is a tie.
+        Parameters:
+            cb - chessboard
+            limit - num of iterations
+
+        Return:
+            winner - winner of the game
         """
         player = cb.playing
 
@@ -66,7 +74,6 @@ class MCTS(object):
             optimal_action = max(act_probs, key=itemgetter(1))[0]
             cb.move(optimal_action)
         else:
-            # If no break from the loop, issue a warning.
             print("WARNING: rollout reached move limit")
 
         if winner == -1:  # tie
@@ -78,7 +85,7 @@ class MCTS(object):
         """
         Runs all playouts sequentially and returns the most visited action.
         parameters:
-            state - the current game chessboard
+            cb - the current game chessboard
 
         Return:
             action - the selected action
@@ -87,12 +94,14 @@ class MCTS(object):
             cb_copy = copy.deepcopy(cb)
             self.playout(cb_copy)
         return max(self.root.children.items(),
-                   key=lambda act_node: act_node[1].n_visits)[0]
+                   key=lambda act_node: act_node[1].num_visits)[0]
 
     def update_with_move(self, prev_move):
         """
         Step forward in the tree, keeping everything we already know
         about the subtree.
+        Parameters:
+            prev_move - last movement
         """
         if prev_move in self.root.children:
             self.root = self.root.children[prev_move]

@@ -72,7 +72,7 @@ class MCTS(object):
             self.playout(cb_copy)
 
         # calc the move probabilities based on visit counts at the root node
-        act_visits = [(act, node.n_visits)
+        act_visits = [(act, node.num_visits)
                       for act, node in self.root.children.items()]
 
         acts, visits = zip(*act_visits)

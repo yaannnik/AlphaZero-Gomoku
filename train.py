@@ -24,16 +24,15 @@ class Trainer:
         # training params
         self.lr = 2e-3
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
-        self.temp = 1.0  # the temperature param
+        self.temp = 1.0  # the temperature param for softmax
         self.n_playout = 400  # num of simulations for each move
         self.C = 5
-        self.buffer_size = 10000
         self.sampling_size = 512  # mini-batch size for training
-        self.data_buffer = deque(maxlen=self.buffer_size)
+        self.data_buffer = deque(maxlen=10000)
         self.play_batch_size = 1
         self.epochs = 5  # num of train_steps for each update
         self.kl_targ = 0.02
-        self.iterations = 100
+        self.iterations = 1500
         self.best_win_percentage = 0.0
         # num of simulations used for the mcts, which is used as
         # the opponent to evaluate the trained policy
@@ -55,7 +54,8 @@ class Trainer:
     def augment_data(self, play_data):
         """
         data augmentation by rotation and flipping
-        play_data: [(s, pi, z), ..., ...] stored during each game played
+        Parameters:
+            play_data - [(s, pi, z), ..., ...] stored during each game played
         """
         augmented_data = []
         for state, mcts_prob, winner in play_data:
@@ -93,21 +93,24 @@ class Trainer:
         sample from data buffer to train theta, each sample is composed of (s, pi, z)
         return:
             loss - loss
-            entropy - entropy
+            entropy - KL-entropy
         """
         samples = random.sample(self.data_buffer, self.sampling_size)
         s, pi, z = \
             [sample[0] for sample in samples], [sample[1] for sample in samples], [sample[2] for sample in samples]
+
         old_probs, old_v = self.gomoku_net.sample_policy_value(s)
+
         for i in range(self.epochs):
             loss, entropy = self.gomoku_net.train_step(s=s, pi=pi, z=z, lr=self.lr * self.lr_multiplier)
             new_probs, new_v = self.gomoku_net.sample_policy_value(s)
             kl = np.mean(np.sum(old_probs *
                                 (np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
                                 axis=1))
-            if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
+
+            if kl > self.kl_targ * 4:
                 break
-        # adaptively adjust the learning rate
+
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
             self.lr_multiplier /= 1.5
         elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
@@ -116,9 +119,11 @@ class Trainer:
         explained_var_old = (1 -
                              np.var(np.array(z) - old_v.flatten()) /
                              np.var(np.array(z)))
+
         explained_var_new = (1 -
                              np.var(np.array(z) - new_v.flatten()) /
                              np.var(np.array(z)))
+
         print(("kl:{:.5f},\n"
                "lr_multiplier:{:.3f},\n"
                "loss:{},\n"
@@ -131,6 +136,7 @@ class Trainer:
                         entropy,
                         explained_var_old,
                         explained_var_new))
+
         return loss, entropy
 
     def policy_evaluate(self, n_games=10):
@@ -140,17 +146,23 @@ class Trainer:
         alphazero_player = AlphaZeroPlayer(policy_value_func=self.gomoku_net.board_policy_value,
                                            C=self.C,
                                            n_playout=self.n_playout)
+
         mcts_player = MCTSPlayer(C=5,
                                  n_playout=self.mcts_playout)
+
         wins = defaultdict(int)
+
         for i in range(n_games):
             winner = self.game.start_play(player1=alphazero_player,
                                           player2=mcts_player,
                                           first_move=i % 2,
                                           visualize=0)
             wins[winner] += 1
+
         win_percentage = 1.0 * (wins[1] + 0.5 * wins[-1]) / n_games
+
         print("games_played: %d, win: %d, lose: %d, tie: %d" % (n_games, wins[1], wins[2], wins[-1]))
+
         return win_percentage
 
     def run(self):
@@ -159,6 +171,7 @@ class Trainer:
         """
         try:
             loss_, entropy_, iters_ = [], [], []
+
             for i in range(self.iterations):
                 self.store_data(self.play_batch_size)
                 print("iteration: %d, episode_length: %d" % (i, self.episode_len))
@@ -185,6 +198,7 @@ class Trainer:
                                 self.mcts_playout < 5000):
                             self.mcts_playout += 1000
                             self.best_win_percentage = 0.0
+
             plt.plot(iters_, loss_, label="loss")
             plt.plot(iters_, entropy_, label="entropy")
             plt.legend(loc='upper right')
@@ -192,6 +206,7 @@ class Trainer:
             plt.title("Pytorch Net")
             # plt.show()
             plt.savefig("./PytorchNet.jpg")
+
         except KeyboardInterrupt:
             print('\n\rquit')
 
