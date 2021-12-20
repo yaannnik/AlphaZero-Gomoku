@@ -146,7 +146,7 @@ class Trainer:
         for i in range(n_games):
             winner = self.game.start_play(player1=alphazero_player,
                                           player2=mcts_player,
-                                          start_player=i % 2,
+                                          first_move=i % 2,
                                           visualize=0)
             wins[winner] += 1
         win_percentage = 1.0 * (wins[1] + 0.5 * wins[-1]) / n_games

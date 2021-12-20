@@ -29,12 +29,12 @@ class GomokuGame(object):
                     print('.'.center(8), end='')
             print('\r\n\r\n')
 
-    def start_play(self, player1, player2, start_player=0, visualize=True):
+    def start_play(self, player1, player2, first_move=0, visualize=True):
         """start a game between two players"""
-        if start_player not in (0, 1):
-            raise Exception('start_player should be either 0 (player1 first) '
+        if first_move not in (0, 1):
+            raise Exception('first move should be either 0 (player1 first) '
                             'or 1 (player2 first)')
-        self.chess_board.reset(start_player)
+        self.chess_board.reset(first_move)
 
         ps = self.chess_board.players
         player1.set_id(ps[0])
