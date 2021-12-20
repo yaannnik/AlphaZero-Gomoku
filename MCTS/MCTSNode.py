@@ -117,10 +117,10 @@ class MCTS:
 
 
 class MCTSPlayer:
-    def __init__(self, state, c_factor=1, n_playout=1000):
+    def __init__(self, state, C=1, n_playout=1000):
         self.state = state
         self.numplay = n_playout
-        self.mcts = MCTS(state, c_factor, n_playout)
+        self.mcts = MCTS(state, C, n_playout)
 
     def reset(self):
         self.mcts.root = MCTSNode(None, 0)

@@ -9,8 +9,8 @@ from Gomoku.Chessboard import ChessBoard
 from Gomoku.Gomoku import GomokuGame
 from Player.MTCSPlayer import MCTSPlayer
 from Player.AlphaZeroPlayer import AlphaZeroPlayer
-# from PytorchNet.PytorchNet import GomokuNet  # Pytorch
-from KerasNet.KerasNet import GomokuNet  # Keras
+from PytorchNet.PytorchNet import GomokuNet  # Pytorch
+# from KerasNet.KerasNet import GomokuNet  # Keras
 from matplotlib import pyplot as plt
 
 
@@ -26,16 +26,16 @@ class Trainer:
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
         self.temp = 1.0  # the temperature param
         self.n_playout = 400  # num of simulations for each move
-        self.c_factor = 5
+        self.C = 5
         self.buffer_size = 10000
         self.sampling_size = 512  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
         self.play_batch_size = 1
         self.epochs = 5  # num of train_steps for each update
         self.kl_targ = 0.02
-        self.iterations = 1500
+        self.iterations = 100
         self.best_win_percentage = 0.0
-        # num of simulations used for the pure mcts, which is used as
+        # num of simulations used for the mcts, which is used as
         # the opponent to evaluate the trained policy
         self.mcts_playout = 1000
         self.episode_len = 0
@@ -48,7 +48,7 @@ class Trainer:
             self.gomoku_net = GomokuNet(size=self.size)
 
         self.alphazero_player = AlphaZeroPlayer(policy_value_func=self.gomoku_net.board_policy_value,
-                                                c_factor=self.c_factor,
+                                                C=self.C,
                                                 n_playout=self.n_playout,
                                                 is_self_play=1)
 
@@ -138,9 +138,9 @@ class Trainer:
         play with a MCTS player to evaluate temporary policy
         """
         alphazero_player = AlphaZeroPlayer(policy_value_func=self.gomoku_net.board_policy_value,
-                                           c_factor=self.c_factor,
+                                           C=self.C,
                                            n_playout=self.n_playout)
-        mcts_player = MCTSPlayer(c_factor=5,
+        mcts_player = MCTSPlayer(C=5,
                                  n_playout=self.mcts_playout)
         wins = defaultdict(int)
         for i in range(n_games):
@@ -170,16 +170,16 @@ class Trainer:
                     iters_.append(i)
 
                 # evaluate the model, save check points
-                if (i + 1) % 10 == 0:
+                if (i + 1) % 50 == 0:
                     print("current self-play iteration: %d" % i)
                     win_percentage = self.policy_evaluate()
-                    self.gomoku_net.save_model('./KerasCheckpoint-%d.model' % i)
+                    self.gomoku_net.save_model('./PytorchCheckpoint-%d.pth' % i)
 
                     if win_percentage > self.best_win_percentage:
                         print("New best policy!")
                         self.best_win_percentage = win_percentage
                         # update the best_policy
-                        self.gomoku_net.save_model('./KerasNet.model')
+                        self.gomoku_net.save_model('./PytorchNet-500.pth')
 
                         if (self.best_win_percentage == 1.0 and
                                 self.mcts_playout < 5000):

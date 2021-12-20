@@ -24,8 +24,8 @@ def policy_value(cb):
 class MCTSPlayer(object):
     """AI player based on MCTS"""
 
-    def __init__(self, c_factor=5, n_playout=2000):
-        self.mcts = MCTS(policy_value, c_factor, n_playout)
+    def __init__(self, C=5, n_playout=2000):
+        self.mcts = MCTS(policy_value, C, n_playout)
         self.id = 0
 
     def set_id(self, p):

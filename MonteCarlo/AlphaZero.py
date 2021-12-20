@@ -14,17 +14,17 @@ def softmax(x):
 
 
 class MCTS(object):
-    def __init__(self, policy_value_func, c_factor=5, n_playout=10000):
+    def __init__(self, policy_value_func, C=5, n_playout=10000):
         """
         parameters:
             policy_value_func - get policy (action and prob) and value
-            c_factor - a number in (0, inf) that controls how quickly exploration
+            C - a number in (0, inf) that controls how quickly exploration
                 converges to the maximum-value policy. A higher value means
                 relying on the prior more.
         """
         self.root = TreeNode(None, 1.0)
         self.policy = policy_value_func
-        self.c_factor = c_factor
+        self.C = C
         self.n_playout = n_playout
 
     def playout(self, cb):
@@ -38,7 +38,7 @@ class MCTS(object):
             if node.is_leaf():
                 break
             # Greedily select next move.
-            action, node = node.select(self.c_factor)
+            action, node = node.select(self.C)
             cb.move(action)
 
         # Evaluate the leaf using a network which outputs a list of

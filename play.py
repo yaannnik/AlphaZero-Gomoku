@@ -21,15 +21,15 @@ def play_gomoku():
 
     pytorch_policy = PytorchNet(size, pytorch_file)
     pytorch_player = AlphaZeroPlayer(policy_value_func=pytorch_policy.board_policy_value,
-                                     c_factor=5,
+                                     C=5,
                                      n_playout=400)
 
     keras_policy = KerasNet(size, keras_file)
     keras_player = AlphaZeroPlayer(policy_value_func=keras_policy.board_policy_value,
-                                   c_factor=5,
+                                   C=5,
                                    n_playout=400)
 
-    gomoku_game.start_play(pytorch_player, keras_player, start_player=0)
+    gomoku_game.start_play(pytorch_player, keras_player, start_player=1)
 
 
 if __name__ == "__main__":

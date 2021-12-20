@@ -13,7 +13,9 @@ from KerasNet.KerasNet2 import GomokuNet2 as KerasNet2
 from KerasNet.KerasNet18 import GomokuNet18 as KerasNet18
 
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
 
 def play_gomoku():
     size, n = 8, 5
@@ -26,19 +28,20 @@ def play_gomoku():
 
     # keras_policy = KerasNet(size, keras_file)
     # keras_player = AlphaZeroPlayer(policy_value_func=keras_policy.board_policy_value,
-    #                                  c_factor=5,
+    #                                  C=5,
     #                                  n_playout=400)
 
     keras_policy2 = KerasNet2(size, keras_file2)
     keras_player2 = AlphaZeroPlayer(policy_value_func=keras_policy2.board_policy_value,
-                                   c_factor=5,
-                                   n_playout=400)
+                                    C=5,
+                                    n_playout=400)
 
     keras_policy18 = KerasNet18(size, keras_file18)
     keras_player18 = AlphaZeroPlayer(policy_value_func=keras_policy18.board_policy_value,
-                                   c_factor=5,
-                                   n_playout=100)
+                                     C=5,
+                                     n_playout=100)
 
     gomoku_game.start_play(keras_player2, keras_player18, start_player=0)
+
 
 play_gomoku()

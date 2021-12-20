@@ -87,6 +87,10 @@ class ChessBoard:
         return False, -1
 
     def end_game(self):
+        """
+        return:
+            end, winner - True is any player wins or tie, -1 if tie
+        """
         win, winner = self.player_win()
 
         if win:

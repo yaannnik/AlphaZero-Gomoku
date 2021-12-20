@@ -9,20 +9,20 @@ from MonteCarlo.TreeNode import TreeNode
 
 
 class MCTS(object):
-    def __init__(self, policy_value_func, c_factor=5, n_playout=10000):
+    def __init__(self, policy_value_func, C=5, n_playout=10000):
         """
         parameters:
             policy_value_fn - a function that takes in a board state and outputs
                 a list of (action, probability) tuples and also a score in [-1, 1]
                 (i.e. the expected value of the end game score from the current
                 player's perspective) for the current player.
-            c_factor - a number in (0, inf) that controls how quickly exploration
+            C - a number in (0, inf) that controls how quickly exploration
                 converges to the maximum-value policy. A higher value means
                 relying on the prior more.
         """
         self.root = TreeNode(None, 1.0)
         self.policy = policy_value_func
-        self.c_factor = c_factor
+        self.C = C
         self.n_playout = n_playout
 
     def playout(self, cb):
@@ -37,7 +37,7 @@ class MCTS(object):
                 break
 
             # Greedily select next move.
-            action, node = node.select(self.c_factor)
+            action, node = node.select(self.C)
             cb.move(action)
 
         act_probs, _ = self.policy(cb)

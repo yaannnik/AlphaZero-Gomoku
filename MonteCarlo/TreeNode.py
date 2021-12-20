@@ -11,7 +11,7 @@ class TreeNode(object):
         self.children = {}  # {action: next_node}
         self.n_visits = 0
         self.Q = 0
-        self.u = 0
+        self.ucb = 0
         self.P = prob
 
     def expand(self, action_prob):
@@ -24,7 +24,7 @@ class TreeNode(object):
             if action not in self.children:
                 self.children[action] = TreeNode(self, prob)
 
-    def select(self, c_factor):
+    def select(self, C):
         """
         Select action among children that gives maximum action value Q
         plus bonus u(P).
@@ -32,7 +32,7 @@ class TreeNode(object):
             A tuple of (action, next_node)
         """
         return max(self.children.items(),
-                   key=lambda children: children[1].get_value(c_factor))
+                   key=lambda children: children[1].get_value(C))
 
     def update(self, return_value):
         """
@@ -52,17 +52,18 @@ class TreeNode(object):
             self.parent.update_recursive(-return_value)
         self.update(return_value)
 
-    def get_value(self, c_factor):
+    def get_value(self, C):
         """
         Calculate and return the value for this node. It is a combination of leaf evaluations Q, and this node's
-        prior adjusted for its visit count, u.
+        upper confidence bound.
 
         parameters:
             factor - a number in (0, inf) controlling the relative
                      impact of value Q, and prior probability P, on this node's score.
         """
-        self.u = (c_factor * self.P * np.sqrt(self.parent.n_visits) / (1 + self.n_visits))
-        return self.Q + self.u
+        self.ucb = (C * self.P * np.sqrt(self.parent.n_visits) / (1 + self.n_visits))
+        # self.ucb = (C * self.P * np.sqrt(np.log(self.parent.n_visits)) / (1 + self.n_visits))  # new UCB value
+        return self.Q + self.ucb
 
     def is_leaf(self):
         return self.children == {}

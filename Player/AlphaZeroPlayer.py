@@ -9,8 +9,8 @@ from MonteCarlo.AlphaZero import MCTS
 class AlphaZeroPlayer(object):
     """AI player based on MCTS"""
 
-    def __init__(self, policy_value_func, c_factor=5, n_playout=2000, is_self_play=False):
-        self.mcts = MCTS(policy_value_func, c_factor, n_playout)
+    def __init__(self, policy_value_func, C=5, n_playout=2000, is_self_play=False):
+        self.mcts = MCTS(policy_value_func, C, n_playout)
         self.is_self_play = is_self_play
         self.id = 0
 
