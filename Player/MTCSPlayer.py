@@ -43,5 +43,3 @@ class MCTSPlayer(object):
         else:
             print("WARNING: No Vacant Position")
 
-    def __str__(self):
-        return "MCTS player %d" % self.id
