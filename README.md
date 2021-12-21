@@ -9,9 +9,8 @@ Our project focus on the winning strategy of Gomoku Game by using Alpha Zero alg
 .  
 ├── Gomoku  
 │   ├── Chessboard.py  
-│   ├── Gomoku.py  
-│   ├── __init__.py  
-│   └── __pycache__  
+│   ├── Gomoku.py   
+│   └── __init__.py
 ├── KerasNet  
 │   ├── KerasNet-4-layer-RNN.py  
 │   ├── KerasNet.py  
@@ -22,19 +21,16 @@ Our project focus on the winning strategy of Gomoku Game by using Alpha Zero alg
 │   ├── AlphaZero.py  
 │   ├── MCTSNode.py  
 │   ├── TreeNode.py  
-│   ├── TreeSearch.py  
-│   ├── __init__.py  
-│   └── __pycache__  
+│   ├── TreeSearch.py    
+│   └── __init__.py
 ├── Player  
 │   ├── AlphaZeroPlayer.py  
 │   ├── MTCSPlayer.py  
-│   ├── ManualPlayer.py  
-│   ├── __init__.py  
-│   └── __pycache__  
+│   ├── ManualPlayer.py   
+│   └── __init__.py  
 ├── PytorchNet  
-│   ├── PytorchNet.py  
-│   ├── __init__.py  
-│   └── __pycache__  
+│   ├── PytorchNet.py   
+│   └── __init__.py 
 ├── README.md  
 ├── play.py  
 └── train.py   
