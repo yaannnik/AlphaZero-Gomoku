@@ -41,5 +41,5 @@ KerasNet: this file contains four model built by Keras. They are original 3-laye
 MonteCarlo: this file is used to do MCTS search. We use two different UCB methods here.  
 Player: the programs in this file are used to connect MCTS with CNN models. The CNN models take state as the input ang output policy and value for MCTS to do next move.  
 PytorchNet: this file are models built by Pytorch.  
-play.py: this file is used to do AI vs AI Gomoku Competition and explore winning strategy.
+play.py: this file is used to do AI vs AI Gomoku Competition and explore winning strategy.  
 train.py: this file is used to train models.  
