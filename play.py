@@ -21,8 +21,8 @@ def play_gomoku():
     gomoku_game = GomokuGame(cb)
     pytorch_file = "./models/PytorchNet-1500.pth"
     keras_file = "./models/KerasNet-1500.model"
-    keras_file2 = "./models/Keras_100_Resnet2.model"
-    keras_file18 = "./models/Keras_100_Resnet18.model"
+    #keras_file2 = "./models/Keras_100_Resnet2.model"
+    #keras_file18 = "./models/Keras_100_Resnet18.model"
     manual_player = ManualPlayer()
 
     pytorch_policy = PytorchNet(size, pytorch_file)
@@ -44,9 +44,16 @@ def play_gomoku():
     # keras_player18 = AlphaZeroPlayer(policy_value_func=keras_policy18.board_policy_value,
     #                                  C=5,
     #                                  n_playout=100)
+    #pytorch_policy2 = PytorchNet(size, pytorch_file2)
+    #pytorch_player2 = AlphaZeroPlayer(policy_value_func=pytorch_policy.board_policy_value,
+    #                                 C=5,
+    #                                 n_playout=400)
+    #pytorch_policy18 = PytorchNet(size, pytorch_file18)
+    #pytorch_player2 = AlphaZeroPlayer(policy_value_func=pytorch_policy.board_policy_value,
+    #                                 C=5,
+    #                                 n_playout=400)
 
     gomoku_game.start_play(pytorch_player, keras_player, first_move=1)
 
 
-if __name__ == "__main__":
-    play_gomoku()
+play_gomoku()

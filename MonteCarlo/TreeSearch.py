@@ -12,10 +12,8 @@ class MCTS(object):
     def __init__(self, policy_value_func, C=5, n_playout=10000):
         """
         parameters:
-            policy_value_fn - a function that takes in a board state and outputs
-                a list of (action, probability) tuples and also a score in [-1, 1]
-                (i.e. the expected value of the end game score from the current
-                player's perspective) for the current player.
+            policy_value_func - a function that takes in a board state and outputs
+                a list of (action, probability) tuples.
             C - a number in (0, inf) that controls how quickly exploration
                 converges to the maximum-value policy. A higher value means
                 relying on the prior more.
@@ -93,8 +91,7 @@ class MCTS(object):
         for n in range(self.n_playout):
             cb_copy = copy.deepcopy(cb)
             self.playout(cb_copy)
-        return max(self.root.children.items(),
-                   key=lambda act_node: act_node[1].num_visits)[0]
+        return max(self.root.children.items(), key=lambda act_node: act_node[1].num_visits)[0]
 
     def update_with_move(self, prev_move):
         """
@@ -108,6 +105,3 @@ class MCTS(object):
             self.root.parent = None
         else:
             self.root = TreeNode(None, 1.0)
-
-    def __str__(self):
-        return "MCTS"

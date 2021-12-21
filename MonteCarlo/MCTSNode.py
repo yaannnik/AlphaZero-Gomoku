@@ -31,6 +31,7 @@ class MCTSNode:
         self.children[nextaction] = MCTSNode(self, self.total_n)
 
     def get_UCBvalue(self, C):
+        #calculate UCB
         if self.node_n == 0:
             return inf
         else:

@@ -211,6 +211,5 @@ class Trainer:
             print('\n\rquit')
 
 
-if __name__ == '__main__':
-    training = Trainer()
-    training.run()
+training = Trainer()
+training.run()

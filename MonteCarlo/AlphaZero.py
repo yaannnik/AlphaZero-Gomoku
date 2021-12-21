@@ -91,7 +91,4 @@ class MCTS(object):
         else:
             self.root = TreeNode(None, 1.0)
 
-    def __str__(self):
-        return "MCTS"
-
 
